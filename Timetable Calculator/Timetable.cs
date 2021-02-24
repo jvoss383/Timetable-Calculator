@@ -21,7 +21,7 @@ namespace Timetable_Calculator
         public string PrintTimetable()
         {
             int headerLines = 2;
-            int footerLines = 2;
+            int footerLines = 4;
             int columnSize = 22;
             int hoursColumnWidth = 9;
             int rowSize = 5;
@@ -71,18 +71,26 @@ namespace Timetable_Calculator
             {
                 // header
                 output[0] += NormLen(daysOfWeek[day], columnSize - 1, ' ') + "|";
-                output[1] += NormLen(""             , columnSize - 1, ' ') + "|";
+                for (int i = 1; i < headerLines; i++)
+                {
+                    output[i] += NormLen("", columnSize - 1, ' ') + "|";
+                }
 
                 // footer
-                output[output.Count() - 2] += NormLen("", columnSize - 1, ' ') + "|"; ;
-                output[output.Count() - 1] += NormLen(Convert.ToString(days[day].score), columnSize - 1, ' ') + "|"; ;
+                output[output.Count() - 3] += NormLen(Convert.ToString(days[day].score), columnSize - 1, ' ') + "|"; ;
+                output[output.Count() - 2] += NormLen(Convert.ToString(Math.Round(days[day].distance * 1000, 0)), columnSize - 1, ' ') + "|"; ;
+                output[output.Count() - 1] += NormLen(Convert.ToString(Math.Round(days[day].dElevation, 1)), columnSize - 1, ' ') + "|"; ;
+                for (int row = output.Count() - 4; row > output.Count() - 1 - footerLines; row--)
+                {
+                    output[row] += NormLen("", columnSize - 1, ' ') + "|"; ;
+                }
 
+                // body
                 for (int hour = startHour; hour < endHour; hour++)
                 {
                     // pad if the slot is empty / shouldn't be printed
                     if (days[day].hours[hour] == null ||
-                        days[day].hours[hour].paper == "Study Time" ||
-                        days[day].hours[hour].paper == "Transport")
+                        !days[day].hours[hour].realClass)
                     {
                         for (int rowOffset = 0; rowOffset < rowSize; rowOffset++)
                         {
@@ -229,9 +237,10 @@ namespace Timetable_Calculator
                 }
             }
 
-            EventOption BikeRack = new EventOption("Transport", ",,I Bike Rack.0.0,Bike Rack");
-                                                              //",,LSL.1.02 , Lab A"
-            EventOption Library = new EventOption("Study Time", ",,M.3.0,Library");
+            EventOption bikeRack = new EventOption("Transport", ",,I Bike Rack.0.0,Bike Rack");
+            bikeRack.realClass = false;
+            EventOption library = new EventOption("Study Time", ",,M.3.0,Library");
+            library.realClass = false;
 
             // entering M block as home location for gaps in timetable, entering I block bike rack as start and end caps
             for(int day = 0; day < days.Count(); day++)
@@ -244,7 +253,7 @@ namespace Timetable_Calculator
                         days[day].startTime = hour;
                         if(hour >= 1)
                         {
-                            days[day].hours[hour - 1] = BikeRack;
+                            days[day].hours[hour - 1] = bikeRack;
                         }
                         break;
                     }
@@ -258,7 +267,7 @@ namespace Timetable_Calculator
                         days[day].endTime = hour;
                         if (hour < 23)
                         {
-                            days[day].hours[hour + 1] = BikeRack;
+                            days[day].hours[hour + 1] = bikeRack;
                         }
                         break;
                     }
@@ -269,7 +278,7 @@ namespace Timetable_Calculator
                 {
                     if(days[day].hours[hour] == null)
                     {
-                        days[day].hours[hour] = Library;
+                        days[day].hours[hour] = library;
                     }
                 }
             }
@@ -280,17 +289,25 @@ namespace Timetable_Calculator
         {
             const double generalAltitudePenalty = 20; // adjust this depending on how much you hate hills. Higher value = more hate
             const double stairsPenalty = 20;
+            const double contiguousClassPenaltyThreshold = 3;
+            const double contiguousClassPenaltyAmount = 2; // amount per class over the threshold
 
             for (int day = 0; day < days.Count(); day++)
             {
+                int contiguousClasses = 0;
+
                 for (int hour = days[day].startTime; hour < days[day].endTime - 1; hour++) // -1 end stop because it compares the current index with index+1
                 {
                     Location locationA = Location.ToLocation(days[day].hours[hour].block, locations);
                     Location locationB = Location.ToLocation(days[day].hours[hour + 1].block, locations);
-                    days[day].score += DistanceCalc.Distance(locationA, locationB);
+                    double distance = DistanceCalc.Distance(locationA, locationB);
+                    days[day].score += distance;
+                    days[day].distance += distance;
+                    Console.WriteLine(NormLen(days[day].hours[hour].block + " --> " + days[day].hours[hour + 1].block, 14, ' ') + Math.Round(distance * 1000, 0));
 
                     // general elevation change penalty calculation
                     double deltaElevation = Math.Abs(locationB.altitude - locationA.altitude);
+                    days[day].dElevation += deltaElevation;
                     if (deltaElevation > 0)
                     {   // uphill
                         days[day].score += deltaElevation * generalAltitudePenalty;
@@ -302,6 +319,20 @@ namespace Timetable_Calculator
 
                     // stairs elevation change penalty calculation
                     days[day].score += days[day].hours[hour].floor > 0 ? days[day].hours[hour].floor * stairsPenalty : days[day].hours[hour].floor * stairsPenalty / 2;
+
+                    // contiguous classes penalty
+                    if(days[day].hours[hour].realClass)
+                    {
+                        contiguousClasses++;
+                    }
+                    else
+                    {
+                        if (contiguousClasses >= contiguousClassPenaltyThreshold)
+                        {   // done at the end of a contiguous block
+                            score += Math.Pow((contiguousClasses - contiguousClassPenaltyThreshold), 3) * contiguousClassPenaltyAmount;
+                        }
+                        contiguousClasses = 0;
+                    }
                 }
                 score += days[day].score;
                 if(days[day].score < 0)
@@ -317,6 +348,8 @@ namespace Timetable_Calculator
     {
         public int startTime, endTime;
         public double score;
+        public double distance;
+        public double dElevation;
         public EventOption[] hours = new EventOption[24];
     }
 
@@ -355,6 +388,7 @@ namespace Timetable_Calculator
     {
         public string paper;
         public string name;
+        public bool realClass = true;
 
         public int startTime; // times are done in hours, i.e. 11:00am = 11, 3:00pm = 15, etc.. 
         public int endTime;
