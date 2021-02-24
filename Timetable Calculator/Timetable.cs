@@ -303,7 +303,7 @@ namespace Timetable_Calculator
                     double distance = DistanceCalc.Distance(locationA, locationB);
                     days[day].score += distance;
                     days[day].distance += distance;
-                    Console.WriteLine(NormLen(days[day].hours[hour].block + " --> " + days[day].hours[hour + 1].block, 14, ' ') + Math.Round(distance * 1000, 0));
+                    //Console.WriteLine(NormLen(days[day].hours[hour].block + " --> " + days[day].hours[hour + 1].block, 14, ' ') + Math.Round(distance * 1000, 0));
 
                     // general elevation change penalty calculation
                     double deltaElevation = Math.Abs(locationB.altitude - locationA.altitude);

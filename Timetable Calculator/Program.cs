@@ -14,7 +14,7 @@ namespace Timetable_Calculator
             // getting location data
             Console.WriteLine("enter path to location lookup table: ");
             //string locationImportPath = Console.ReadLine().Replace('\"', ' ');
-            string locationImportPath = @"C:\Users\jvoss\Downloads\University Timetable - Locations (3).tsv";
+            string locationImportPath = @"C:\Users\jvoss\Downloads\University Timetable - Locations (5).tsv";
             Location[] locations = ImportData.Locations(locationImportPath);
 
             // getting timetable data
@@ -22,6 +22,9 @@ namespace Timetable_Calculator
             //string timetableDataImportPath = Console.ReadLine().Replace('\"', ' ');
             string timetableDataImportPath = @"C:\Users\jvoss\Downloads\University Timetable - Timetable Calculator (2).tsv";
             Event[] events = ImportData.Events(timetableDataImportPath);
+
+            //Console.WriteLine(DistanceCalc.LinearDistance(Location.ToLocation("TX", locations), Location.ToLocation("LSL", locations)));
+
 
             TimetableOption[] timetableOptions = GenerateTimetableOptions(events);
 
@@ -180,9 +183,11 @@ namespace Timetable_Calculator
 
     public class DistanceCalc
     {
+        public static Dictionary<double, string> distances = new Dictionary<double, string>();
+
         public static double Distance(Location pointA, Location pointB)
-        {
-            double radius = 6371;
+        {   // haversine distance
+            double radius = 6371; // m
             double dLatitude = ToRadians(pointA.latitude - pointB.latitude);
             double dLongitude = ToRadians(pointA.longitude - pointB.longitude);
 
@@ -191,12 +196,40 @@ namespace Timetable_Calculator
               Math.Cos(ToRadians(pointA.latitude)) * Math.Cos(ToRadians(pointB.latitude)) *
               Math.Sin(dLongitude / 2) * Math.Sin(dLongitude / 2);
             double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-            double d = radius * c;
+            double distance = radius * c;
+
+            if (!distances.ContainsKey(Math.Round(distance * 1000, 2)))
+            {
+                distances.Add(Math.Round(distance * 1000, 2), pointA.name + " --> " + pointB.name);
+            }
 
             double correctionFactor = 23890.17d / 31150.28d;
-            d *= correctionFactor;
+            //d *= correctionFactor;
             //d *= 1000; // km -> m
-            return d;
+            return distance;
+        }
+
+        public static double LinearDistance(Location pointA, Location pointB)
+        {
+            double radius = 6371; // m
+
+            double dLatitude = ToRadians(pointA.latitude - pointB.latitude);
+            double dLongitude = ToRadians(pointA.longitude - pointB.longitude);
+
+            double aLat = radius * Math.Sin(dLatitude);
+            double aLon = radius * Math.Sin(dLongitude);
+
+            double sLat = aLat / Math.Sin((Math.PI - aLat) / 2);
+            double sLon = aLon / Math.Sin((Math.PI - aLon) / 2);
+
+            double distance = Math.Sqrt(sLat * sLat + sLon * sLon); // pythagoras
+
+            if(!distances.ContainsKey(Math.Round(distance*1000, 2)))
+            {
+                distances.Add(Math.Round(distance * 1000, 2), pointA.name + " --> " + pointB.name);
+            }
+
+            return distance;
         }
 
         private static double ToRadians(double degrees)
