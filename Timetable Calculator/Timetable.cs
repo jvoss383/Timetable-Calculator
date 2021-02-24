@@ -28,7 +28,7 @@ namespace Timetable_Calculator
             int startHour = 8;
             int endHour = 17;
             int startDay = 1;
-            int endDay = 5;
+            int endDay = 6;
             string[] daysOfWeek = new string[] { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
 
             string[] output = new string[(endHour - startHour) * rowSize + headerLines + footerLines];
@@ -278,7 +278,8 @@ namespace Timetable_Calculator
 
         public double CalcScore(Location[] locations)
         {
-            const double altitudePenalty = 20; // adjust this depending on how much you hate hills. Higher value = more hate
+            const double generalAltitudePenalty = 20; // adjust this depending on how much you hate hills. Higher value = more hate
+            const double stairsPenalty = 20;
 
             for (int day = 0; day < days.Count(); day++)
             {
@@ -288,16 +289,19 @@ namespace Timetable_Calculator
                     Location locationB = Location.ToLocation(days[day].hours[hour + 1].block, locations);
                     days[day].score += DistanceCalc.Distance(locationA, locationB);
 
-                    // elevation change penalty calculation
+                    // general elevation change penalty calculation
                     double deltaElevation = Math.Abs(locationB.altitude - locationA.altitude);
                     if (deltaElevation > 0)
                     {   // uphill
-                        days[day].score += deltaElevation * altitudePenalty;
+                        days[day].score += deltaElevation * generalAltitudePenalty;
                     }
                     else
                     {   // downhill
-                        days[day].score += deltaElevation * altitudePenalty / 2;
+                        days[day].score += deltaElevation * generalAltitudePenalty / 2;
                     }
+
+                    // stairs elevation change penalty calculation
+                    days[day].score += days[day].hours[hour].floor > 0 ? days[day].hours[hour].floor * stairsPenalty : days[day].hours[hour].floor * stairsPenalty / 2;
                 }
                 score += days[day].score;
                 if(days[day].score < 0)
