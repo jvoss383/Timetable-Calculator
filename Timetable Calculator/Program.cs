@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using System.Drawing;
 
 namespace Timetable_Calculator
 {
@@ -20,13 +21,13 @@ namespace Timetable_Calculator
             // getting timetable data
             Console.WriteLine("enter path to timetable data: ");
             //string timetableDataImportPath = Console.ReadLine().Replace('\"', ' ');
-            string timetableDataImportPath = @"C:\Users\jvoss\Downloads\University Timetable - Timetable Calculator (2).tsv";
+            string timetableDataImportPath = @"C:\Users\jvoss\Downloads\University Timetable - Timetable Calculator (3).tsv";
             Event[] events = ImportData.Events(timetableDataImportPath);
-
-            //Console.WriteLine(DistanceCalc.LinearDistance(Location.ToLocation("TX", locations), Location.ToLocation("LSL", locations)));
-
-
             TimetableOption[] timetableOptions = GenerateTimetableOptions(events);
+
+            Console.WriteLine("enter path to output folder: ");
+            //string outputLocation = Console.ReadLine().Replace('\"', ' ');
+            string outputLocation = @"C:\Users\jvoss\Downloads";
 
             // generating timetables and calculating their scores
             Timetable[] timetables = new Timetable[timetableOptions.Count()];
@@ -58,12 +59,32 @@ namespace Timetable_Calculator
             Timetable.SortTimetables(timetables, Timetable.SortOrder.ascending);
             Console.WriteLine("done");
 
+            int index = 0;
+
             while(true)
             {
                 try
                 {
                     Console.WriteLine("enter timetable index: ");
-                    timetables[Convert.ToInt32(Console.ReadLine())].PrintTimetable();
+                    index = Console.ReadKey().Key == ConsoleKey.RightArrow ? index + 1 : index - 1;
+                    index = index < 0 ? 0 : index;
+
+                    Console.Clear();
+                    timetables[index].PrintTimetable();
+                    RenderTimetable(timetables[index], locations).Save(outputLocation + "\\" + index + ".jpg");
+                    timetables[index].ExportTSV(outputLocation);
+                    Console.WriteLine(
+                        String.Format(
+                            "Totals:\n" +
+                            "Score:      {0}\n" +
+                            "Distance:   {1}\n" +
+                            "dElevation: {2}\n" +
+                            "index:      {3}", 
+                            timetables[index].score, 
+                            timetables[index].distance, 
+                            timetables[index].dElevation,
+                            index));
+
                 }
                 catch
                 {
@@ -120,9 +141,79 @@ namespace Timetable_Calculator
             }
             return null;
         }
+
+        private static Bitmap RenderTimetable(Timetable timetable, Location[] locations)
+        {
+            const int mWidth = 3000;    // meters width
+            const int mHeight = 3000;   // meters height
+
+            const int metersPerPixel = 1;
+
+            const int width = mWidth / metersPerPixel;      // pixels width
+            const int height = mHeight / metersPerPixel;    // pixels height
+
+            Bitmap canvas = new Bitmap(width, height);
+
+            Dictionary<int, Color> dayColors = new Dictionary<int, Color>
+            {
+                { 0, Color.DarkGray },
+                { 1, Color.Red },
+                { 2, Color.Orange },
+                { 3, Color.Green },
+                { 4, Color.Cyan },
+                { 5, Color.Blue },
+                { 6, Color.Gray },
+            };
+
+            List<string> printedLocations = new List<string>();
+
+            using (Graphics g = Graphics.FromImage(canvas))
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                for (int day = 1; day < 6; day++)
+                {
+                    bool dayStarted = false;
+                    PointF location = new PointF(canvas.Width / 2, canvas.Height / 2);
+
+                    for(int hour = 1; hour < 24; hour++)
+                    {
+                        /*if (!dayStarted && timetable.days[day].hours[hour] != null && timetable.days[day].hours[hour].name == "Bike Rack")
+                            dayStarted = true;
+
+                        if(!dayStarted)
+                        {
+                            continue;
+                        }
+
+                        if (dayStarted && timetable.days[day].hours[hour].name == "Bike Rack")
+                            dayStarted = false; // but it should finish this run, this is transit to the bike racks*/
+
+                        if (!dayStarted && timetable.days[day].hours[hour] != null)
+                        {
+                            dayStarted = true;
+                            continue; // continue the first time otherwise the hours - 1 will refer to a null index
+                        }
+
+                        if (dayStarted && timetable.days[day].hours[hour] != null)
+                        {
+                            (double, double) distances = DistanceCalc.LinearDistance(timetable.days[day].hours[hour].ToLocation(locations), timetable.days[day].hours[hour - 1].ToLocation(locations));
+                            PointF newLocation = new PointF(location.X + (float)distances.Item1, (int)location.Y - (float)distances.Item2);
+
+                            if (!printedLocations.Contains(timetable.days[day].hours[hour].block))
+                            {
+                                g.DrawString(timetable.days[day].hours[hour].block, new Font(FontFamily.GenericSansSerif.Name, 16f), new SolidBrush(Color.Black), newLocation);
+                                printedLocations.Add(timetable.days[day].hours[hour].block);
+                            }
+                            g.DrawLine(new Pen(new SolidBrush(dayColors[day])), location, newLocation);
+                            location = newLocation;
+                        }
+                    }
+                }
+            }
+
+            return canvas;
+        }
     }
-
-
     public class ImportData
     {
         public static Location[] Locations(string importPath)
@@ -142,6 +233,7 @@ namespace Timetable_Calculator
             string[] file = File.ReadAllLines(importPath);
 
             string currentPaper = "";
+            string currentPaperName = "";
             List<Event> events = new List<Event>();
             for(int row = 0; row < file.Count(); row++)
             {
@@ -151,6 +243,7 @@ namespace Timetable_Calculator
                 if(splitRow[0] == "Paper")
                 {
                     currentPaper = splitRow[1];
+                    currentPaperName = splitRow[2];
                     continue;
                 }
 
@@ -161,7 +254,7 @@ namespace Timetable_Calculator
                     for (int column = 1; column < splitRow.Count(); column++)
                     {
                         // go vertically adding the event options
-                        Event newEvent = new Event(currentPaper, splitRow[column]);
+                        Event newEvent = new Event(currentPaper, currentPaperName, splitRow[column]);
                         
                         for(int eventOptionIndex = 1; row + eventOptionIndex < file.Count(); eventOptionIndex++)
                         {
@@ -171,7 +264,7 @@ namespace Timetable_Calculator
                                 break;
                             }
 
-                            newEvent.options.Add(new EventOption(currentPaper, file[row + eventOptionIndex].Split('\t')[column]));
+                            newEvent.options.Add(new EventOption(currentPaper, currentPaperName, file[row + eventOptionIndex].Split('\t')[column]));
                         }
                         events.Add(newEvent);
                     }
@@ -203,13 +296,19 @@ namespace Timetable_Calculator
                 distances.Add(Math.Round(distance * 1000, 2), pointA.name + " --> " + pointB.name);
             }
 
-            double correctionFactor = 23890.17d / 31150.28d;
+            //double correctionFactor = 23890.17d / 31150.28d;
             //d *= correctionFactor;
             //d *= 1000; // km -> m
             return distance;
         }
 
-        public static double LinearDistance(Location pointA, Location pointB)
+        /// <summary>
+        /// returns distnce in xy components in meters
+        /// </summary>
+        /// <param name="pointA"></param>
+        /// <param name="pointB"></param>
+        /// <returns></returns>
+        public static (double, double) LinearDistance(Location pointA, Location pointB)
         {
             double radius = 6371; // m
 
@@ -222,6 +321,8 @@ namespace Timetable_Calculator
             double sLat = aLat / Math.Sin((Math.PI - aLat) / 2);
             double sLon = aLon / Math.Sin((Math.PI - aLon) / 2);
 
+            return (sLat * 1000, sLon * 1000);
+            /*
             double distance = Math.Sqrt(sLat * sLat + sLon * sLon); // pythagoras
 
             if(!distances.ContainsKey(Math.Round(distance*1000, 2)))
@@ -229,7 +330,7 @@ namespace Timetable_Calculator
                 distances.Add(Math.Round(distance * 1000, 2), pointA.name + " --> " + pointB.name);
             }
 
-            return distance;
+            return distance;*/
         }
 
         private static double ToRadians(double degrees)
@@ -252,7 +353,10 @@ namespace Timetable_Calculator
             latitude = latitude_In;
             altitude = altitude_In;
         }
-    
+
+        /// <summary>
+        /// Note: locationName should be only the block (e.g. MSB, ELT, etc...)
+        /// </summary>
         public static Location ToLocation(string locationName, Location[] locations)
         {
             foreach(Location location in locations)

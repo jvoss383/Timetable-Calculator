@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace Timetable_Calculator
 {
@@ -10,6 +11,8 @@ namespace Timetable_Calculator
     {
         public bool valid = false;
         public double score;
+        public double distance;
+        public double dElevation;
         public Day[] days = new Day[7];
 
         public enum SortOrder
@@ -18,11 +21,79 @@ namespace Timetable_Calculator
             descending
         }
 
+        public string ExportTSV(string outputLocation)
+        {
+            outputLocation = outputLocation[outputLocation.Length - 1] == '\\' ? outputLocation : outputLocation + "\\"; // adds '\\' char if absent
+            outputLocation += score + ".tsv";
+
+            int startHour = 8;
+            int endHour = 17;
+            int startDay = 1;
+            int endDay = 6;
+            string[] daysOfWeek = new string[] { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+
+            string output = "";
+
+            // header
+            output += "\t";
+            for (int day = startDay; day < endDay; day++)
+            {
+                output += daysOfWeek[day] + "\t";
+            }
+            output += "\n";
+
+            for (int hour = startHour; hour < endHour; hour++)
+            {
+                for(int row = 0; row < 4; row++)
+                {
+                    // hours column
+                    if (row == 0)
+                        output += hour + ":00\t";
+                    else
+                        output += "\t";
+
+                    for (int day = startDay; day < endDay; day++)
+                    {
+                        if(days[day].hours[hour] != null && days[day].hours[hour].realClass)
+                        {
+                            switch (row)
+                            {
+                                case 0:
+                                    output += days[day].hours[hour].paper + "\t";
+                                    break;
+                                case 1:
+                                    output += days[day].hours[hour].paperName + "\t";
+                                    break;
+                                case 2:
+                                    output += days[day].hours[hour].name + "\t";
+                                    break;
+                                case 3:
+                                    output += days[day].hours[hour].fullLocation + "\t";
+                                    break;
+
+                            }
+                        }
+                        else
+                        {   // empty slot
+                            output += "\t";
+                        }
+                    }
+                    output += "\n";
+                }
+            }
+
+            using (StreamWriter sw = new StreamWriter(outputLocation))
+            {
+                sw.Write(output);
+            }
+            return output;
+        }
+
         public string PrintTimetable()
         {
             int headerLines = 2;
             int footerLines = 4;
-            int columnSize = 22;
+            int columnSize = 23;
             int hoursColumnWidth = 9;
             int rowSize = 5;
             int startHour = 8;
@@ -32,10 +103,11 @@ namespace Timetable_Calculator
             string[] daysOfWeek = new string[] { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
 
             string[] output = new string[(endHour - startHour) * rowSize + headerLines + footerLines];
+            Console.WindowWidth = hoursColumnWidth + columnSize * (endDay - startDay) + 1;
 
             // hours column
             // padding header lines
-            for(int row = 0; row < headerLines; row++)
+            for (int row = 0; row < headerLines; row++)
             {
                 output[row] += NormLen("", hoursColumnWidth - 1, ' ') + "|";
             }
@@ -100,7 +172,7 @@ namespace Timetable_Calculator
                     else
                     {
                         output[headerLines + (hour - startHour) * rowSize    ] += NormLen(days[day].hours[hour].paper,        columnSize - 1, ' ') + "|";
-                        output[headerLines + (hour - startHour) * rowSize + 1] += NormLen("",                                 columnSize - 1, ' ') + "|"; // human readable paper name
+                        output[headerLines + (hour - startHour) * rowSize + 1] += NormLen(days[day].hours[hour].paperName,    columnSize - 1, ' ') + "|"; // human readable paper name
                         output[headerLines + (hour - startHour) * rowSize + 2] += NormLen(days[day].hours[hour].name,         columnSize - 1, ' ') + "|";
                         output[headerLines + (hour - startHour) * rowSize + 3] += NormLen(days[day].hours[hour].fullLocation, columnSize - 1, ' ') + "|";
                         output[headerLines + (hour - startHour) * rowSize + 4] += NormLen("",                                 columnSize - 1, '-') + "|";
@@ -237,9 +309,9 @@ namespace Timetable_Calculator
                 }
             }
 
-            EventOption bikeRack = new EventOption("Transport", ",,I Bike Rack.0.0,Bike Rack");
+            EventOption bikeRack = new EventOption("Transport", "", ",,Bike Rack.0.0,Bike Rack");
             bikeRack.realClass = false;
-            EventOption library = new EventOption("Study Time", ",,M.3.0,Library");
+            EventOption library = new EventOption("Study Time", "", ",,M.3.0,Library");
             library.realClass = false;
 
             // entering M block as home location for gaps in timetable, entering I block bike rack as start and end caps
@@ -287,10 +359,15 @@ namespace Timetable_Calculator
 
         public double CalcScore(Location[] locations)
         {
-            const double generalAltitudePenalty = 20; // adjust this depending on how much you hate hills. Higher value = more hate
-            const double stairsPenalty = 20;
-            const double contiguousClassPenaltyThreshold = 3;
-            const double contiguousClassPenaltyAmount = 2; // amount per class over the threshold
+            //const double generalAltitudePenalty = 20; // adjust this depending on how much you hate hills. Higher value = more hate
+            //const double stairsPenalty = 20;
+            //const double contiguousClassPenaltyThreshold = 3;
+            //const double contiguousClassPenaltyAmount = 2; // amount per class over the threshold
+
+            const double generalAltitudePenalty = 0; // adjust this depending on how much you hate hills. Higher value = more hate
+            const double stairsPenalty = 0;
+            const double contiguousClassPenaltyThreshold = 999;
+            const double contiguousClassPenaltyAmount = 0; // amount per class over the threshold
 
             for (int day = 0; day < days.Count(); day++)
             {
@@ -335,6 +412,8 @@ namespace Timetable_Calculator
                     }
                 }
                 score += days[day].score;
+                distance += days[day].distance;
+                dElevation += days[day].dElevation;
                 if(days[day].score < 0)
                 {
                     throw new Exception("semantically incorrect result");
@@ -366,19 +445,22 @@ namespace Timetable_Calculator
     public class Event
     {
         public string paper;
+        public string paperName;
         public string name;
         public List<EventOption> options;
 
-        public Event(string paper, string name, List<EventOption> options)
+        public Event(string paper, string paperName, string name, List<EventOption> options)
         {
             this.paper = paper;
+            this.paperName = paperName;
             this.name = name;
             this.options = options;
         }
         
-        public Event(string paper, string name)
+        public Event(string paper, string paperName, string name)
         {
             this.paper = paper;
+            this.paperName = paperName;
             this.name = name;
             this.options = new List<EventOption>();
         }
@@ -387,6 +469,7 @@ namespace Timetable_Calculator
     public class EventOption
     {
         public string paper;
+        public string paperName;
         public string name;
         public bool realClass = true;
 
@@ -413,10 +496,11 @@ namespace Timetable_Calculator
             Invalid = -1
         }
 
-        public EventOption(string paper, string input)
+        public EventOption(string paper, string paperName, string input)
         {
             string[] splitInput = input.Split(',');
             this.paper = paper;
+            this.paperName = paperName;
 
             day = ToDay(splitInput[0]);
 
@@ -427,7 +511,11 @@ namespace Timetable_Calculator
                 duration = endTime - startTime;
             }
 
-            fullLocation = splitInput[2].Replace(" ", "");
+            fullLocation = splitInput[2];
+            if (fullLocation[0] == ' ')
+            {
+                fullLocation = fullLocation.Replace(" ", "");
+            }
             block = fullLocation.Split('.')[0];
             string tempFloor = fullLocation.Split('.')[1].Replace(" ", "");
             if(tempFloor == "G")
@@ -467,6 +555,11 @@ namespace Timetable_Calculator
                     return DayEnum.Saturday;
             }
             return DayEnum.Invalid;
+        }
+
+        public Location ToLocation(Location[] locations)
+        {
+            return Location.ToLocation(block, locations);
         }
     }
 }
