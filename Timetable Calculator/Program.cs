@@ -14,20 +14,20 @@ namespace Timetable_Calculator
         {
             // getting location data
             Console.WriteLine("enter path to location lookup table: ");
-            //string locationImportPath = Console.ReadLine().Replace('\"', ' ');
-            string locationImportPath = @"C:\Users\jvoss\Downloads\University Timetable - Locations (5).tsv";
+            string locationImportPath = Console.ReadLine().Replace('\"', ' ');
+            //string locationImportPath = @"C:\Users\jvoss\Downloads\University Timetable - Locations (5).tsv";
             Location[] locations = ImportData.Locations(locationImportPath);
 
             // getting timetable data
             Console.WriteLine("enter path to timetable data: ");
-            //string timetableDataImportPath = Console.ReadLine().Replace('\"', ' ');
-            string timetableDataImportPath = @"C:\Users\jvoss\Downloads\University Timetable - Timetable Calculator (3).tsv";
+            string timetableDataImportPath = Console.ReadLine().Replace('\"', ' ');
+            //string timetableDataImportPath = @"C:\Users\jvoss\Downloads\University Timetable - Timetable Calculator (3).tsv";
             Event[] events = ImportData.Events(timetableDataImportPath);
             TimetableOption[] timetableOptions = GenerateTimetableOptions(events);
 
             Console.WriteLine("enter path to output folder: ");
-            //string outputLocation = Console.ReadLine().Replace('\"', ' ');
-            string outputLocation = @"C:\Users\jvoss\Downloads";
+            string outputLocation = Console.ReadLine().Replace('\"', ' ');
+            //string outputLocation = @"C:\Users\jvoss\Downloads";
 
             // generating timetables and calculating their scores
             Timetable[] timetables = new Timetable[timetableOptions.Count()];
