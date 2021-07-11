@@ -25,8 +25,8 @@ namespace Timetable_Calculator
             Event[] events = ImportData.Events(timetableDataImportPath);
             TimetableOption[] timetableOptions = GenerateTimetableOptions(events);
 
-            //Console.WriteLine("enter path to output folder: ");
-            //string outputLocation = Console.ReadLine().Replace('\"', ' ');
+            Console.WriteLine("enter path to output folder: ");
+            string outputLocation = Console.ReadLine().Replace('\"', ' ');
             //string outputLocation = @"C:\Users\jvoss\Downloads";
 
             // generating timetables and calculating their scores
@@ -72,7 +72,7 @@ namespace Timetable_Calculator
                     Console.Clear();
                     timetables[index].PrintTimetable();
                     //RenderTimetable(timetables[index]).Save(outputLocation + "\\" + index + ".jpg");
-                    //timetables[index].ExportTSV(outputLocation);
+                    timetables[index].ExportTSV(outputLocation);
                     Console.WriteLine(
                         String.Format(
                             "Totals:\n" +
