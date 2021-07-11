@@ -14,9 +14,9 @@ namespace Timetable_Calculator
         {
             // getting location data
             Console.WriteLine("enter path to location lookup table: ");
-            string locationImportPath = Console.ReadLine().Replace('\"', ' ');
+            //string locationImportPath = Console.ReadLine().Replace('\"', ' ');
             //string locationImportPath = @"C:\Users\jvoss\Downloads\University Timetable - Locations (5).tsv";
-            Location[] locations = ImportData.Locations(locationImportPath);
+            //Location[] locations = ImportData.Locations(locationImportPath);
 
             // getting timetable data
             Console.WriteLine("enter path to timetable data: ");
@@ -39,8 +39,8 @@ namespace Timetable_Calculator
                 if(timetables[i].valid)
                 {
                     validTimetables++;
-                    timetables[i].CalcScore(locations);
-                    /*Console.WriteLine(String.Format(
+                    timetables[i].score = timetables[i].NewCalcScore();
+                    Console.WriteLine(String.Format(
                         "valid timetables: {0}\n" +
                         "current timetable index: {1}\n" +
                         "total timetables: {2}\n" +
@@ -71,7 +71,7 @@ namespace Timetable_Calculator
 
                     Console.Clear();
                     timetables[index].PrintTimetable();
-                    RenderTimetable(timetables[index], locations).Save(outputLocation + "\\" + index + ".jpg");
+                    RenderTimetable(timetables[index]).Save(outputLocation + "\\" + index + ".jpg");
                     timetables[index].ExportTSV(outputLocation);
                     Console.WriteLine(
                         String.Format(
@@ -142,7 +142,7 @@ namespace Timetable_Calculator
             return null;
         }
 
-        private static Bitmap RenderTimetable(Timetable timetable, Location[] locations)
+        private static Bitmap RenderTimetable(Timetable timetable)
         {
             const int mWidth = 3000;    // meters width
             const int mHeight = 3000;   // meters height
@@ -196,16 +196,16 @@ namespace Timetable_Calculator
 
                         if (dayStarted && timetable.days[day].hours[hour] != null)
                         {
-                            (double, double) distances = DistanceCalc.LinearDistance(timetable.days[day].hours[hour].ToLocation(locations), timetable.days[day].hours[hour - 1].ToLocation(locations));
-                            PointF newLocation = new PointF(location.X + (float)distances.Item1, (int)location.Y - (float)distances.Item2);
+                            //(double, double) distances = DistanceCalc.LinearDistance(timetable.days[day].hours[hour].ToLocation(locations), timetable.days[day].hours[hour - 1].ToLocation(locations));
+                            //PointF newLocation = new PointF(location.X + (float)distances.Item1, (int)location.Y - (float)distances.Item2);
 
                             if (!printedLocations.Contains(timetable.days[day].hours[hour].block))
                             {
-                                g.DrawString(timetable.days[day].hours[hour].block, new Font(FontFamily.GenericSansSerif.Name, 16f), new SolidBrush(Color.Black), newLocation);
+                                //g.DrawString(timetable.days[day].hours[hour].block, new Font(FontFamily.GenericSansSerif.Name, 16f), new SolidBrush(Color.Black), newLocation);
                                 printedLocations.Add(timetable.days[day].hours[hour].block);
                             }
-                            g.DrawLine(new Pen(new SolidBrush(dayColors[day])), location, newLocation);
-                            location = newLocation;
+                            //g.DrawLine(new Pen(new SolidBrush(dayColors[day])), location, newLocation);
+                            //location = newLocation;
                         }
                     }
                 }
@@ -251,7 +251,7 @@ namespace Timetable_Calculator
                 if(splitRow[0] == "Event")
                 {
                     // go horizontally across the events
-                    for (int column = 1; column < splitRow.Count(); column++)
+                    for (int column = 1; column < splitRow.Count() && splitRow[column].Length > 0; column++)
                     {
                         // go vertically adding the event options
                         Event newEvent = new Event(currentPaper, currentPaperName, splitRow[column]);

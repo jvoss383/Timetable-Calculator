@@ -357,6 +357,81 @@ namespace Timetable_Calculator
             valid = true; // says that this timetable encountered no clashes while being constructed and could be used
         }
 
+        public double NewCalcScore()
+        {
+            double gapLengthPenalty = 0;
+            double hoursInClassesPenalty = 0;
+            double continuousClassesPenalty = 0;
+
+            for(int day = 0; day < 5; day++)
+            {
+                int hoursInClasses = 0;
+                for(int hour = days[day].startTime; hour < days[day].endTime; hour++)
+                {
+                    // if it's a gap chunk
+                    if (!days[day].hours[hour].realClass)
+                    {
+                        int gapLength = 1;
+                        for (int seekHour = hour + 1; seekHour < days[day].endTime; seekHour++)
+                        {
+                            if (!days[day].hours[seekHour].realClass)
+                            {
+                                gapLength++;
+                            }
+                            else
+                            {   // is a class, indicates end of gap
+                                hour = seekHour;
+                                break;
+                            }
+                        }
+
+                        // application
+                        if (gapLength == 1)
+                        {
+                            gapLengthPenalty += 2;
+                        }
+                        else if (gapLength > 2)
+                        {
+                            gapLengthPenalty++;
+                        }
+
+                    }
+                    // if it's a class chunk
+                    else
+                    {
+                        int classesLength = 1;
+                        for (int seekHour = hour + 1; seekHour < days[day].endTime; seekHour++)
+                        {
+                            if (days[day].hours[seekHour].realClass)
+                            {
+                                classesLength++;
+                            }
+                            else
+                            {   // is a class, indicates end of gap
+                                hour = seekHour;
+                                break;
+                            }
+                        }
+
+                        // application
+                        if(classesLength >= 4)
+                        {
+                            continuousClassesPenalty += classesLength * 2 - 7;
+                        }
+                    }
+                }
+
+                // application
+                if (hoursInClasses >= 4)
+                {
+                    hoursInClassesPenalty += hoursInClasses - 3;
+                }
+            }
+
+            return gapLengthPenalty + hoursInClassesPenalty + continuousClassesPenalty;
+            
+        }
+
         public double CalcScore(Location[] locations)
         {
             //const double generalAltitudePenalty = 20; // adjust this depending on how much you hate hills. Higher value = more hate
