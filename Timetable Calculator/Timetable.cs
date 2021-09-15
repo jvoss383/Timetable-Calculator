@@ -4,6 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using Ical.Net;
+using Ical.Net.CalendarComponents;
+using Ical.Net.DataTypes;
+using Ical.Net.Serialization;
 
 namespace Timetable_Calculator
 {
@@ -19,6 +23,99 @@ namespace Timetable_Calculator
         {
             ascending,
             descending
+        }
+
+        public void ExportICS(string outputLocation)
+        {
+            outputLocation = outputLocation[outputLocation.Length - 1] == '\\' ? outputLocation : outputLocation + "\\"; // adds '\\' char if absent
+            outputLocation += score + "_calendar.ics";
+
+            List<EventOption> calendarEvents = new List<EventOption>();
+
+            for(int day = 0; day < 7; day++)
+            {
+                for(int hour = 0; hour < 24; hour++)
+                {
+                    if (!calendarEvents.Contains(days[day].hours[hour]))
+                    {
+                        calendarEvents.Add(days[day].hours[hour]);
+                    }
+                }
+            }
+
+            Calendar calendar = new Calendar();
+            calendar.AddTimeZone(new VTimeZone("Pacific/Auckland"));
+
+            foreach(EventOption eventOption in calendarEvents)
+            {
+                if(eventOption != null && eventOption.realClass)
+                {
+                    int startHour = eventOption.startTime;
+                    int startMinute = startHour > 12 ? 10 : 0;
+                    int endMinute = startMinute + 50;
+                    if(endMinute == 60)
+                    {
+                        endMinute = 0;
+                    }
+                    int endHour = eventOption.startTime + eventOption.duration;
+                    if(endMinute == 50)
+                    {
+                        endHour--;
+                        // class doesn't actually span the change of hour, therefore sutract the hour change added by eventOption.duration.
+                    }
+
+                    int dateDay = 20 + (int)eventOption.day - 1 - 7;
+                    int dateMonth = 9;
+                    int dateYear = 2021;
+
+                    string room = Convert.ToString(eventOption.room);
+                    if(room.Length == 1)
+                    {
+                        room = "0" + room;
+                    }
+                    string floor = Convert.ToString(eventOption.floor);
+                    if(floor == "0")
+                    {
+                        floor = "G";
+                    }
+                    else if (floor == "-1")
+                    {
+                        floor = "B";
+                    }
+
+                    string location = eventOption.block + "." + floor + "." + room;
+
+                    RecurrencePattern recurrencePattern = new RecurrencePattern()
+                    {
+                        Frequency = FrequencyType.Weekly,
+                        Interval = 1,
+                        ByDay = new List<WeekDay>
+                        {
+                            new WeekDay
+                            {
+                                DayOfWeek = (DayOfWeek)(eventOption.day)
+                            }
+                        },
+                        FirstDayOfWeek = DayOfWeek.Sunday,
+                        Until = new DateTime(2021,10,15)
+                    };
+
+                    CalendarEvent calendarEvent = new CalendarEvent()
+                    {
+                        Summary = "[" + location + "] " + eventOption.paperName + " " + eventOption.name,
+                        //Description = ,
+                        Start = new CalDateTime(dateYear, dateMonth, dateDay, startHour, startMinute, 0),
+                        Duration = TimeSpan.FromMinutes(eventOption.duration * 60 - 10),
+                        RecurrenceRules = new List<RecurrencePattern>() { recurrencePattern }
+                    };
+
+                    calendar.Events.Add(calendarEvent);
+                }
+            }
+
+            CalendarSerializer iCalSerializer = new CalendarSerializer();
+            string result = iCalSerializer.SerializeToString(calendar);
+            File.WriteAllText(outputLocation, result);
         }
 
         public string ExportTSV(string outputLocation)

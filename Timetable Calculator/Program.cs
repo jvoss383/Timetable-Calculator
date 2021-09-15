@@ -21,7 +21,7 @@ namespace Timetable_Calculator
             // getting timetable data
             Console.WriteLine("enter path to timetable data: ");
             string timetableDataImportPath = Console.ReadLine().Replace('\"', ' ');
-            //string timetableDataImportPath = @"C:\Users\jvoss\Downloads\University Timetable - Timetable Calculator (3).tsv";
+            //string timetableDataImportPath = @"C:\Users\jvoss\Downloads\University Timetable - 21B Timetable Event Options (7).tsv";
             Event[] events = ImportData.Events(timetableDataImportPath);
             TimetableOption[] timetableOptions = GenerateTimetableOptions(events);
 
@@ -90,6 +90,8 @@ namespace Timetable_Calculator
                 {
                     Console.WriteLine("invalid input");
                 }
+
+                timetables[index].ExportICS(outputLocation);
             }
         }
 
