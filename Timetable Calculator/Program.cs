@@ -54,6 +54,7 @@ namespace Timetable_Calculator
 
             // filtering out invalid timetables
             timetables = Timetable.FilterValidTimetables(timetables);
+            timetables = Timetable.CustomFilterTimetables(timetables);
 
             Console.WriteLine("sorting...");
             Timetable.SortTimetables(timetables, Timetable.SortOrder.ascending);
@@ -72,7 +73,7 @@ namespace Timetable_Calculator
                     Console.Clear();
                     timetables[index].PrintTimetable();
                     //RenderTimetable(timetables[index]).Save(outputLocation + "\\" + index + ".jpg");
-                    timetables[index].ExportTSV(outputLocation);
+                    timetables[index].ExportTSV(outputLocation, index);
                     Console.WriteLine(
                         String.Format(
                             "Totals:\n" +
@@ -91,7 +92,7 @@ namespace Timetable_Calculator
                     Console.WriteLine("invalid input");
                 }
 
-                timetables[index].ExportICS(outputLocation);
+                timetables[index].ExportICS(outputLocation, index);
             }
         }
 
