@@ -26,7 +26,7 @@ namespace Timetable_Calculator
             TimetableOption[] timetableOptions = GenerateTimetableOptions(events);
 
             Console.WriteLine("enter path to output folder: ");
-            string outputLocation = Console.ReadLine().Replace('\"', ' ');
+            string outputLocation = Console.ReadLine().Replace("\"", "");
             //string outputLocation = @"C:\Users\jvoss\Downloads";
 
             // generating timetables and calculating their scores
@@ -54,6 +54,7 @@ namespace Timetable_Calculator
 
             // filtering out invalid timetables
             timetables = Timetable.FilterValidTimetables(timetables);
+            timetables = Timetable.CustomFilterTimetables(timetables);
 
             Console.WriteLine("sorting...");
             Timetable.SortTimetables(timetables, Timetable.SortOrder.ascending);
@@ -69,29 +70,36 @@ namespace Timetable_Calculator
                     index = Console.ReadKey().Key == ConsoleKey.RightArrow ? index + 1 : index - 1;
                     index = index < 0 ? 0 : index;
 
-                    Console.Clear();
-                    timetables[index].PrintTimetable();
-                    //RenderTimetable(timetables[index]).Save(outputLocation + "\\" + index + ".jpg");
-                    timetables[index].ExportTSV(outputLocation);
-                    Console.WriteLine(
-                        String.Format(
-                            "Totals:\n" +
-                            "Score:      {0}\n" +
-                            "Distance:   {1}\n" +
-                            "dElevation: {2}\n" +
-                            "index:      {3}", 
-                            timetables[index].score, 
-                            timetables[index].distance, 
-                            timetables[index].dElevation,
-                            index));
-
+                    if(index >= timetables.Count())
+                    {
+                        Console.WriteLine("invalid input");
+                        continue;
+                    }
                 }
                 catch
                 {
                     Console.WriteLine("invalid input");
                 }
 
-                timetables[index].ExportICS(outputLocation);
+                string outputPath = outputLocation[outputLocation.Length - 1] == '\\' ? outputLocation : outputLocation + "\\"; // adds '\\' char if absent
+
+                Console.Clear();
+                timetables[index].PrintTimetable();
+                //RenderTimetable(timetables[index]).Save(outputLocation + "\\" + index + ".jpg");
+                timetables[index].ExportTSV(outputPath, index);
+                Console.WriteLine(
+                    String.Format(
+                        "Totals:\n" +
+                        "Score:      {0}\n" +
+                        "Distance:   {1}\n" +
+                        "dElevation: {2}\n" +
+                        "index:      {3}",
+                        timetables[index].score,
+                        timetables[index].distance,
+                        timetables[index].dElevation,
+                        index));
+
+                timetables[index].ExportICS(outputPath, index);
             }
         }
 

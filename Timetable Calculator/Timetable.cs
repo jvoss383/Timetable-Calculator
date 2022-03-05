@@ -25,10 +25,10 @@ namespace Timetable_Calculator
             descending
         }
 
-        public void ExportICS(string outputLocation)
+        public void ExportICS(string outputLocation, int timetableIndex)
         {
             outputLocation = outputLocation[outputLocation.Length - 1] == '\\' ? outputLocation : outputLocation + "\\"; // adds '\\' char if absent
-            outputLocation += score + "_calendar.ics";
+            outputLocation += timetableIndex + "_calendar.ics";
 
             List<EventOption> calendarEvents = new List<EventOption>();
 
@@ -64,9 +64,9 @@ namespace Timetable_Calculator
                         // class doesn't actually span the change of hour, therefore sutract the hour change added by eventOption.duration.
                     }
 
-                    int dateDay = 20 + (int)eventOption.day - 1 - 7;
-                    int dateMonth = 9;
-                    int dateYear = 2021;
+                    int dateDay = 7 + (int)eventOption.day - 1 - 0;
+                    int dateMonth = 3;
+                    int dateYear = 2022;
 
                     string room = Convert.ToString(eventOption.room);
                     if(room.Length == 1)
@@ -97,7 +97,7 @@ namespace Timetable_Calculator
                             }
                         },
                         FirstDayOfWeek = DayOfWeek.Sunday,
-                        Until = new DateTime(2021,10,15)
+                        Until = new DateTime(2022,6,13)
                     };
 
                     CalendarEvent calendarEvent = new CalendarEvent()
@@ -118,10 +118,10 @@ namespace Timetable_Calculator
             File.WriteAllText(outputLocation, result);
         }
 
-        public string ExportTSV(string outputLocation)
+        public string ExportTSV(string outputLocation, int timetableIndex)
         {
             outputLocation = outputLocation[outputLocation.Length - 1] == '\\' ? outputLocation : outputLocation + "\\"; // adds '\\' char if absent
-            outputLocation += score + ".tsv";
+            outputLocation += timetableIndex + ".tsv";
 
             int startHour = 8;
             int endHour = 17;
@@ -316,6 +316,25 @@ namespace Timetable_Calculator
             return validTimetables.ToArray();
         }
 
+        public static Timetable[] CustomFilterTimetables(Timetable[] timetables)
+        {
+            List<Timetable> outputTimetables = new List<Timetable>();
+            foreach (Timetable timetable in timetables)
+            {
+                int threeHourGaps = 0;
+                for (int day = 1; day < 6; day++)
+                {
+                    if (timetable.days[day].startTime >= 13)
+                        threeHourGaps++;
+                    if (timetable.days[day].endTime <= 13)
+                        threeHourGaps++;
+                }
+                if (threeHourGaps >= 2)
+                    outputTimetables.Add(timetable);
+            }
+            return outputTimetables.ToArray();
+        }
+
         public static Timetable[] SortTimetables(Timetable[] timetables, SortOrder sortOrder)
         {
             float divisor = 1.3f;
@@ -433,7 +452,7 @@ namespace Timetable_Calculator
                 {
                     if (days[day].hours[hour] != null)
                     {   // last filled slot
-                        days[day].endTime = hour;
+                        days[day].endTime = hour + 1;
                         if (hour < 23)
                         {
                             days[day].hours[hour + 1] = bikeRack;
