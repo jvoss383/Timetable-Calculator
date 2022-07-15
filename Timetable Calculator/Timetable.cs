@@ -64,8 +64,8 @@ namespace Timetable_Calculator
                         // class doesn't actually span the change of hour, therefore sutract the hour change added by eventOption.duration.
                     }
 
-                    int dateDay = 7 + (int)eventOption.day - 1 - 0;
-                    int dateMonth = 3;
+                    int dateDay = 17 + (int)eventOption.day;
+                    int dateMonth = 7;
                     int dateYear = 2022;
 
                     string room = Convert.ToString(eventOption.room);
@@ -97,7 +97,7 @@ namespace Timetable_Calculator
                             }
                         },
                         FirstDayOfWeek = DayOfWeek.Sunday,
-                        Until = new DateTime(2022,6,13)
+                        Until = new DateTime(2022,10,21)
                     };
 
                     CalendarEvent calendarEvent = new CalendarEvent()
@@ -194,7 +194,7 @@ namespace Timetable_Calculator
             int hoursColumnWidth = 9;
             int rowSize = 5;
             int startHour = 8;
-            int endHour = 17;
+            int endHour = 18;
             int startDay = 1;
             int endDay = 6;
             string[] daysOfWeek = new string[] { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
@@ -473,6 +473,19 @@ namespace Timetable_Calculator
             valid = true; // says that this timetable encountered no clashes while being constructed and could be used
         }
 
+        public double CalcScore22B()
+        {
+            double totalHoursAtUniPerWeek = 0;
+            for (int day = 0; day < 7; day++)
+            {
+                totalHoursAtUniPerWeek += days[day].endTime - days[day].startTime;
+                Console.WriteLine(String.Format("{0}\t - {1}\t - {2}", Convert.ToString(days[day].startTime), Convert.ToString(days[day].endTime), Convert.ToString(days[day].endTime - days[day].startTime)));
+            }
+
+            Console.WriteLine();
+            return totalHoursAtUniPerWeek;
+        }
+
         public double NewCalcScore()
         {
             double gapLengthPenalty = 0;
@@ -708,14 +721,19 @@ namespace Timetable_Calculator
                 fullLocation = fullLocation.Replace(" ", "");
             }
             block = fullLocation.Split('.')[0];
-            string tempFloor = fullLocation.Split('.')[1].Replace(" ", "");
-            if(tempFloor == "G")
-                floor = 0;
-            else if(tempFloor == "B")
-                floor = -1;
-            else
-                floor = Convert.ToInt32(tempFloor);
-            room = Convert.ToInt32(fullLocation.Split('.')[2]);
+
+            try // not all events will have rooms or floors, this allows for inputs without them specified to error without crashing
+            {
+                string tempFloor = fullLocation.Split('.')[1].Replace(" ", "");
+                if (tempFloor == "G")
+                    floor = 0;
+                else if (tempFloor == "B")
+                    floor = -1;
+                else
+                    floor = Convert.ToInt32(tempFloor);
+                room = Convert.ToInt32(fullLocation.Split('.')[2]);
+            }
+            catch { }
 
             name = splitInput[3];
             if(name[0] == ' ')

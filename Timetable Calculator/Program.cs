@@ -39,7 +39,7 @@ namespace Timetable_Calculator
                 if(timetables[i].valid)
                 {
                     validTimetables++;
-                    timetables[i].score = timetables[i].NewCalcScore();
+                    timetables[i].score = timetables[i].CalcScore22B();
                     Console.WriteLine(String.Format(
                         "valid timetables: {0}\n" +
                         "current timetable index: {1}\n" +
@@ -54,7 +54,7 @@ namespace Timetable_Calculator
 
             // filtering out invalid timetables
             timetables = Timetable.FilterValidTimetables(timetables);
-            timetables = Timetable.CustomFilterTimetables(timetables);
+            //timetables = Timetable.CustomFilterTimetables(timetables);
 
             Console.WriteLine("sorting...");
             Timetable.SortTimetables(timetables, Timetable.SortOrder.ascending);
@@ -273,6 +273,9 @@ namespace Timetable_Calculator
                             {
                                 break;
                             }
+
+                            var localRow = file[row + eventOptionIndex];
+                            var localCell = file[row + eventOptionIndex].Split('\t')[column];
 
                             newEvent.options.Add(new EventOption(currentPaper, currentPaperName, file[row + eventOptionIndex].Split('\t')[column]));
                         }
