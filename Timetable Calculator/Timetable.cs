@@ -19,6 +19,9 @@ namespace Timetable_Calculator
         public double dElevation;
         public Day[] days = new Day[7];
 
+        public DateTime startDate = new DateTime(2023, 02, 27); // should be the monday of week 1 (regardless of whether classes actuall start on that day)
+        public DateTime endDate = new DateTime(2023, 06, 05);   // should be the last day of classes before study break
+
         public enum SortOrder
         {
             ascending,
@@ -64,9 +67,9 @@ namespace Timetable_Calculator
                         // class doesn't actually span the change of hour, therefore sutract the hour change added by eventOption.duration.
                     }
 
-                    int dateDay = 17 + (int)eventOption.day;
-                    int dateMonth = 7;
-                    int dateYear = 2022;
+                    int dateDay = startDate.Add(new TimeSpan((int)eventOption.day - 1,0,0,0)).Day;
+                    int dateMonth = startDate.Month;
+                    int dateYear = startDate.Year;
 
                     string room = Convert.ToString(eventOption.room);
                     if(room.Length == 1)
@@ -97,7 +100,7 @@ namespace Timetable_Calculator
                             }
                         },
                         FirstDayOfWeek = DayOfWeek.Sunday,
-                        Until = new DateTime(2022,10,21)
+                        Until = endDate
                     };
 
                     CalendarEvent calendarEvent = new CalendarEvent()
